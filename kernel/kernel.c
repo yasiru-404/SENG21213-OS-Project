@@ -24,6 +24,9 @@
 #include "vga.h"
 #include "keyboard.h"
 #include "../include/types.h"
+#include "../include/idt.h"
+#include "../include/pit.h"
+#include "../include/process.h"
 
 /* ---------------------------------------------------------------------------
  * Forward declarations of shell commands
@@ -33,6 +36,7 @@ static void cmd_clear(void);
 static void cmd_about(void);
 static void cmd_echo(const char *args);
 static void cmd_mem(void);
+static void cmd_ps(void);
 
 /* ---------------------------------------------------------------------------
  * Utility: minimal string helpers (no libc in a freestanding kernel!)
@@ -159,6 +163,12 @@ static void cmd_mem(void) {
                    VGA_YELLOW, VGA_BLACK);
 }
 
+extern void process_print_list(void (*puts_fn)(const char *), void (*puts_col_fn)(const char *, uint8_t, uint8_t));
+
+static void cmd_ps(void) {
+    process_print_list(vga_puts, vga_puts_color);
+}
+
 /* ---------------------------------------------------------------------------
  * Shell process
  * --------------------------------------------------------------------------*/
@@ -182,6 +192,7 @@ static void shell_run(void) {
         if (k_strcmp(cmd, "clear") == 0) { cmd_clear(); continue; }
         if (k_strcmp(cmd, "about") == 0) { cmd_about(); continue; }
         if (k_strcmp(cmd, "mem")   == 0) { cmd_mem();   continue; }
+        if (k_strcmp(cmd, "ps")    == 0) { cmd_ps();    continue; }
 
         if (k_strncmp(cmd, "echo ", 5) == 0) {
             cmd_echo(k_ltrim(cmd + 5));
@@ -189,8 +200,7 @@ static void shell_run(void) {
         }
 
         /* Milestone stubs */
-        if (k_strcmp(cmd, "ps")      == 0 ||
-            k_strcmp(cmd, "kill")    == 0 ||
+        if (k_strcmp(cmd, "kill")    == 0 ||
             k_strcmp(cmd, "threads") == 0 ||
             k_strcmp(cmd, "free")    == 0 ||
             k_strcmp(cmd, "ls")      == 0 ||
@@ -212,10 +222,20 @@ static void shell_run(void) {
  * --------------------------------------------------------------------------*/
 void kernel_main(void) {
     vga_init();
+    
+    idt_init();
+    pit_init(100); // 100 Hz timer
+    
     kb_init();
     print_splash();
-    shell_run();
+    
+    scheduler_init();
+    create_process(shell_run);
+    
+    // We don't call shell_run directly anymore.
+    // Instead we enable interrupts and let the scheduler pick it up.
 
-    /* Should never reach here */
-    __asm__ __volatile__("hlt");
+    while (1) {
+        __asm__ __volatile__("hlt");
+    }
 }
