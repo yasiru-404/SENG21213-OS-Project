@@ -37,6 +37,9 @@ static void cmd_about(void);
 static void cmd_echo(const char *args);
 static void cmd_mem(void);
 static void cmd_ps(void);
+static void cmd_race(void);
+static void cmd_race_safe(void);
+static void cmd_prodcons(void);
 
 /* ---------------------------------------------------------------------------
  * Utility: minimal string helpers (no libc in a freestanding kernel!)
@@ -122,6 +125,9 @@ static void cmd_help(void) {
     vga_puts("  mem     – Memory map (stub)\n");
     vga_puts_color("\n  Milestones (to implement):\n", VGA_LIGHT_CYAN, VGA_BLACK);
     vga_puts("  ps      – [L09] List processes\n");
+    vga_puts("  race    – [L10] Demo unsafe race condition\n");
+    vga_puts("  race_safe - [L10] Demo safe race condition (mutex)\n");
+    vga_puts("  prodcons  - [L10] Demo producer/consumer\n");
     vga_puts("  kill    – [L09] Terminate a process\n");
     vga_puts("  threads – [L10] List kernel threads\n");
     vga_puts("  free    – [L11] Show free memory\n");
@@ -169,6 +175,22 @@ static void cmd_ps(void) {
     process_print_list(vga_puts, vga_puts_color);
 }
 
+extern void demo_race_unsafe(void);
+extern void demo_race_safe(void);
+extern void demo_prodcons(void);
+
+static void cmd_race(void) {
+    demo_race_unsafe();
+}
+
+static void cmd_race_safe(void) {
+    demo_race_safe();
+}
+
+static void cmd_prodcons(void) {
+    demo_prodcons();
+}
+
 /* ---------------------------------------------------------------------------
  * Shell process
  * --------------------------------------------------------------------------*/
@@ -193,6 +215,9 @@ static void shell_run(void) {
         if (k_strcmp(cmd, "about") == 0) { cmd_about(); continue; }
         if (k_strcmp(cmd, "mem")   == 0) { cmd_mem();   continue; }
         if (k_strcmp(cmd, "ps")    == 0) { cmd_ps();    continue; }
+        if (k_strcmp(cmd, "race")  == 0) { cmd_race();  continue; }
+        if (k_strcmp(cmd, "race_safe") == 0) { cmd_race_safe(); continue; }
+        if (k_strcmp(cmd, "prodcons") == 0) { cmd_prodcons(); continue; }
 
         if (k_strncmp(cmd, "echo ", 5) == 0) {
             cmd_echo(k_ltrim(cmd + 5));
