@@ -27,6 +27,7 @@
 #include "../include/idt.h"
 #include "../include/pit.h"
 #include "../include/process.h"
+#include "../include/pmm.h"
 
 /* ---------------------------------------------------------------------------
  * Forward declarations of shell commands
@@ -35,7 +36,7 @@ static void cmd_help(void);
 static void cmd_clear(void);
 static void cmd_about(void);
 static void cmd_echo(const char *args);
-static void cmd_mem(void);
+static void cmd_meminfo(void);
 static void cmd_ps(void);
 static void cmd_race(void);
 static void cmd_race_safe(void);
@@ -122,7 +123,7 @@ static void cmd_help(void) {
     vga_puts("  clear   – Clear the screen\n");
     vga_puts("  about   – About this OS and course\n");
     vga_puts("  echo    – Echo text to screen\n");
-    vga_puts("  mem     – Memory map (stub)\n");
+    vga_puts("  meminfo – Memory map\n");
     vga_puts_color("\n  Milestones (to implement):\n", VGA_LIGHT_CYAN, VGA_BLACK);
     vga_puts("  ps      – [L09] List processes\n");
     vga_puts("  race    – [L10] Demo unsafe race condition\n");
@@ -156,17 +157,35 @@ static void cmd_echo(const char *args) {
     vga_puts("\n");
 }
 
-static void cmd_mem(void) {
-    /* Stage 0 stub – students implement the real PMM in Lecture 11 */
-    vga_puts_color("\n  Memory Map (stub – implement PMM in Lecture 11)\n",
-                   VGA_LIGHT_CYAN, VGA_BLACK);
+static void cmd_meminfo(void) {
+    uint32_t total = pmm_get_total_mb();
+    uint32_t used = pmm_get_used_mb();
+    uint32_t free = pmm_get_free_mb();
+
+    vga_puts_color("\n  Physical Memory Map (E820)\n", VGA_LIGHT_CYAN, VGA_BLACK);
     vga_puts("  ─────────────────────────────────────────────\n");
-    vga_puts("  0x00000000 – 0x000FFFFF  :  First 1 MB (reserved/BIOS)\n");
-    vga_puts("  0x00100000 – 0x00EFFFFF  :  Extended memory (usable ~14 MB)\n");
-    vga_puts("  0x00F00000 – 0x00FFFFFF  :  BIOS / ROM area\n");
-    vga_puts("  0xB8000    – 0xBFFFF     :  VGA frame buffer\n");
-    vga_puts_color("\n  TODO: Use BIOS int 0x15, EAX=0xE820 to get real memory map\n\n",
-                   VGA_YELLOW, VGA_BLACK);
+    
+    char buf[128];
+    // Poor man's sprintf
+    vga_puts("  Total RAM : ");
+    buf[0] = (total / 100) ? '0' + (total / 100) : ' ';
+    buf[1] = ((total / 10) % 10) ? '0' + ((total / 10) % 10) : ' ';
+    buf[2] = '0' + (total % 10);
+    buf[3] = ' '; buf[4] = 'M'; buf[5] = 'B'; buf[6] = '\n'; buf[7] = 0;
+    vga_puts(buf);
+
+    vga_puts("  Used  RAM : ");
+    buf[0] = (used / 100) ? '0' + (used / 100) : ' ';
+    buf[1] = ((used / 10) % 10) ? '0' + ((used / 10) % 10) : ' ';
+    buf[2] = '0' + (used % 10);
+    vga_puts(buf);
+
+    vga_puts("  Free  RAM : ");
+    buf[0] = (free / 100) ? '0' + (free / 100) : ' ';
+    buf[1] = ((free / 10) % 10) ? '0' + ((free / 10) % 10) : ' ';
+    buf[2] = '0' + (free % 10);
+    vga_puts(buf);
+    vga_puts("\n");
 }
 
 extern void process_print_list(void (*puts_fn)(const char *), void (*puts_col_fn)(const char *, uint8_t, uint8_t));
@@ -213,7 +232,7 @@ static void shell_run(void) {
         if (k_strcmp(cmd, "help")  == 0) { cmd_help();  continue; }
         if (k_strcmp(cmd, "clear") == 0) { cmd_clear(); continue; }
         if (k_strcmp(cmd, "about") == 0) { cmd_about(); continue; }
-        if (k_strcmp(cmd, "mem")   == 0) { cmd_mem();   continue; }
+        if (k_strcmp(cmd, "meminfo") == 0) { cmd_meminfo(); continue; }
         if (k_strcmp(cmd, "ps")    == 0) { cmd_ps();    continue; }
         if (k_strcmp(cmd, "race")  == 0) { cmd_race();  continue; }
         if (k_strcmp(cmd, "race_safe") == 0) { cmd_race_safe(); continue; }
@@ -248,6 +267,9 @@ static void shell_run(void) {
 void kernel_main(void) {
     vga_init();
     
+    // Parse E820 map and init Physical Memory Manager
+    pmm_init();
+
     idt_init();
     pit_init(100); // 100 Hz timer
     

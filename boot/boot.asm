@@ -52,6 +52,41 @@ load_kernel:
     call print_rm
 
 ; ---------------------------------------------------------------------------
+; Get E820 Memory Map
+; ---------------------------------------------------------------------------
+get_mmap:
+    mov di, 0x8004          ; Leave first 4 bytes for entry count
+    xor ebx, ebx            ; EBX must be 0 for first call
+    mov bp, 0               ; BP will store entry count
+
+.next_entry:
+    mov eax, 0xE820
+    mov ecx, 24             ; Buffer size
+    mov edx, 0x534D4150     ; 'SMAP'
+    int 0x15
+    jc .done_mmap           ; Carry set means end or error
+    cmp eax, 0x534D4150
+    jne .done_mmap          ; EAX should equal 'SMAP'
+    
+    jcxz .skip_entry        ; Ignore 0-length entries
+    cmp cl, 20
+    jbe .valid
+    test byte [di + 20], 1
+    jz .skip_entry
+.valid:
+    mov ecx, [di + 8]       ; Check length low dword
+    or ecx, [di + 12]       ; Check length high dword
+    jz .skip_entry
+    
+    add di, 24              ; Move to next entry (we always advance by 24 for fixed size)
+    inc bp                  ; Increment count
+.skip_entry:
+    test ebx, ebx           ; If EBX is 0, list is done
+    jnz .next_entry
+.done_mmap:
+    mov [0x8000], bp        ; Store entry count at 0x8000
+
+; ---------------------------------------------------------------------------
 ; Enter Protected Mode
 ; ---------------------------------------------------------------------------
 enter_pm:
