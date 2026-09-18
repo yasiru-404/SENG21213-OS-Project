@@ -1,9 +1,4 @@
-/* =============================================================================
- * SENG21213-OS :: VGA Text-Mode Driver
- * File   : kernel/vga.c
- * Purpose: Implements the VGA 80×25 colour text-mode output driver.
- *          Direct memory-mapped I/O – no BIOS calls in protected mode.
- * ============================================================================*/
+
 #include "vga.h"
 #include "../include/types.h"
 

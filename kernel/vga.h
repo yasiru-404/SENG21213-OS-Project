@@ -1,12 +1,4 @@
-/* =============================================================================
- * SENG21213-OS :: VGA Text-Mode Driver Header
- * File   : kernel/vga.h
- * Purpose: Declarations for the VGA 80x25 colour text-mode driver.
- *
- * VGA text memory layout (Physical address 0xB8000):
- *   Each character cell = 2 bytes: [ ASCII (lo) | Attribute (hi) ]
- *   Attribute byte:  [ BG(3 bits) | FG(4 bits) | Blink(1 bit) ]
- * ============================================================================*/
+
 #ifndef VGA_H
 #define VGA_H
 

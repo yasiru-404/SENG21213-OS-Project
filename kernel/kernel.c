@@ -1,26 +1,3 @@
-/* =============================================================================
- * SENG21213-OS :: Main Kernel  (Stage 0 – Foundations)
- * File   : kernel/kernel.c
- *
- * PURPOSE
- *   This is the heart of your operating system. Right now it:
- *     1. Initialises VGA text-mode display
- *     2. Initialises the keyboard driver
- *     3. Prints a splash screen
- *     4. Runs a minimal interactive shell ("ksh")
- *
- * ASSIGNMENT MILESTONES  (what YOU will add in later lectures)
- *   Lecture  9  – Process Management  →  process.h / process.c / scheduler.c
- *   Lecture 10  – Threads             →  thread.h  / thread.c
- *   Lecture 11  – Memory Management   →  pmm.h     / pmm.c / vmm.c
- *   Lecture 12  – File System         →  fs.h      / fs.c
- *
- * CODING CONVENTION
- *   - Prefix kernel-internal functions with k_ (e.g. k_strcmp)
- *   - All driver APIs live in their own .h/.c pair
- *   - NEVER call malloc – use the PMM you build in Lecture 11
- * ============================================================================*/
-
 #include "vga.h"
 #include "keyboard.h"
 #include "../include/types.h"
@@ -28,6 +5,7 @@
 #include "../include/pit.h"
 #include "../include/process.h"
 #include "../include/pmm.h"
+#include "../include/fs.h"
 
 /* ---------------------------------------------------------------------------
  * Forward declarations of shell commands
@@ -129,11 +107,12 @@ static void cmd_help(void) {
     vga_puts("  race    – [L10] Demo unsafe race condition\n");
     vga_puts("  race_safe - [L10] Demo safe race condition (mutex)\n");
     vga_puts("  prodcons  - [L10] Demo producer/consumer\n");
-    vga_puts("  kill    – [L09] Terminate a process\n");
-    vga_puts("  threads – [L10] List kernel threads\n");
-    vga_puts("  free    – [L11] Show free memory\n");
     vga_puts("  ls      – [L12] List files\n");
-    vga_puts("  cat     – [L12] Print file contents\n\n");
+    vga_puts("  touch   – [L12] Create file\n");
+    vga_puts("  cat     – [L12] Print file contents\n");
+    vga_puts("  write   – [L12] Write to file (write <name> <text>)\n");
+    vga_puts("  rm      – [L12] Delete file\n");
+    vga_puts("  kill    – [L09] Terminate a process\n");
 }
 
 static void cmd_clear(void) {
@@ -243,6 +222,26 @@ static void shell_run(void) {
             continue;
         }
 
+        if (k_strcmp(cmd, "ls")    == 0) { cmd_fs_ls(); continue; }
+        if (k_strncmp(cmd, "touch ", 6) == 0) { cmd_fs_touch(k_ltrim(cmd + 6)); continue; }
+        if (k_strncmp(cmd, "cat ", 4) == 0)   { cmd_fs_cat(k_ltrim(cmd + 4)); continue; }
+        if (k_strncmp(cmd, "rm ", 3) == 0)    { cmd_fs_rm(k_ltrim(cmd + 3)); continue; }
+        
+        if (k_strncmp(cmd, "write ", 6) == 0) {
+            const char *args = k_ltrim(cmd + 6);
+            char name[28];
+            int i = 0;
+            while (args[i] && args[i] != ' ' && i < 27) {
+                name[i] = args[i];
+                i++;
+            }
+            name[i] = 0;
+            const char *text = "";
+            if (args[i] == ' ') text = k_ltrim(args + i);
+            cmd_fs_write(name, text);
+            continue;
+        }
+
         /* Milestone stubs */
         if (k_strcmp(cmd, "kill")    == 0 ||
             k_strcmp(cmd, "threads") == 0 ||
@@ -270,6 +269,9 @@ void kernel_main(void) {
     // Parse E820 map and init Physical Memory Manager
     pmm_init();
 
+    // Initialize File System (RAM Disk)
+    fs_init();
+
     idt_init();
     pit_init(100); // 100 Hz timer
     
@@ -279,8 +281,8 @@ void kernel_main(void) {
     scheduler_init();
     create_process(shell_run);
     
-    // We don't call shell_run directly anymore.
-    // Instead we enable interrupts and let the scheduler pick it up.
+    // I don't call shell_run directly anymore.
+    // Instead I enable interrupts and let the scheduler pick it up.
 
     while (1) {
         __asm__ __volatile__("hlt");

@@ -1,9 +1,7 @@
-/* =============================================================================
- * SENG21213-OS :: Primitive types
- * File   : include/types.h
- * Purpose: Freestanding C environment does not provide stdint.h from glibc.
- *          Define our own integer types here.
- * ============================================================================*/
+/*Primitive types
+Purpose: Freestanding C environment does not provide stdint.h from glibc.
+Define our own integer types here.
+*/
 #ifndef TYPES_H
 #define TYPES_H
 

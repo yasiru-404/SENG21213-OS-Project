@@ -1,7 +1,3 @@
-/* =============================================================================
- * SENG21213-OS :: PS/2 Keyboard Driver Implementation
- * File   : kernel/keyboard.c
- * ============================================================================*/
 #include "keyboard.h"
 #include "vga.h"
 #include "../include/types.h"

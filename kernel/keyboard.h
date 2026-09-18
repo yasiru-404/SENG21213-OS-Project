@@ -1,9 +1,4 @@
-/* =============================================================================
- * SENG21213-OS :: PS/2 Keyboard Driver
- * File   : kernel/keyboard.h + keyboard.c
- * Stage 0: Polling-based keyboard input (no interrupts yet).
- *          In Lecture 9 you will replace this with an IRQ1 handler.
- * ============================================================================*/
+
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 
