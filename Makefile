@@ -44,8 +44,8 @@ endif
 BOOT_SRC  := boot/boot.asm
 BOOT_BIN  := boot/boot.bin
 
-KERNEL_ASM_SRCS := kernel/kernel_entry.asm kernel/isr.asm
-KERNEL_ASM_OBJS := $(patsubst kernel/%.asm, build/%.o, $(KERNEL_ASM_SRCS))
+KERNEL_ASM_SRCS := kernel/kernel_entry.asm boot/switch.asm
+KERNEL_ASM_OBJS := build/kernel_entry.o build/switch.o
 
 KERNEL_C_SRCS  := kernel/kernel.c \
                    kernel/vga.c    \
@@ -95,7 +95,12 @@ $(BOOT_BIN): $(BOOT_SRC)
 # ---------------------------------------------------------------------------
 # Kernel: Assembly objects
 # ---------------------------------------------------------------------------
-build/%.o: kernel/%.asm
+build/kernel_entry.o: kernel/kernel_entry.asm
+	@mkdir -p build
+	@echo "  [AS]  $<"
+	$(AS) $(ASFLAGS) $< -o $@
+
+build/switch.o: boot/switch.asm
 	@mkdir -p build
 	@echo "  [AS]  $<"
 	$(AS) $(ASFLAGS) $< -o $@
